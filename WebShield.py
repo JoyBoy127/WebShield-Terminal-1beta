@@ -4,6 +4,7 @@ import re
 import threading
 import base64
 from tkinter.tix import MAIN
+from xml.dom import DOMException
 from bs4 import BeautifulSoup
 import os
 import datetime
@@ -48,15 +49,16 @@ import argparse
 import logging
 import sys
 
+import os
+import argparse
+import logging
+import requests
+from dotenv import load_dotenv
 
-def zap_scanner_integration(url):
-    # Function definition for OWASP ZAP Scanner Integration
+def zap_scanner_integration(url, zap_api_key):
     try:
         # Define ZAP API endpoint
         zap_api_url = 'http://localhost:8080/JSON/'
-
-        # Define ZAP API key (replace with your actual API key)
-        zap_api_key = 'your_zap_api_key'
 
         # Construct the endpoint for initiating a ZAP scan
         scan_endpoint = zap_api_url + 'spider/action/scan/'
@@ -85,11 +87,21 @@ def main_zap():
     if not args.z:
         parser.error("The -z option must be specified to perform OWASP ZAP Scanner Integration")
 
+    # Load environment variables from .env file
+    load_dotenv()
+
+    # Retrieve ZAP API key from environment variable
+    zap_api_key = os.getenv("ZAP_API_KEY")
+
+    if not zap_api_key:
+        logging.error("ZAP API key not found in environment variables.")
+        return
+
     # Configure logging
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
     try:
-        zap_scanner_integration(args.url)
+        zap_scanner_integration(args.url, zap_api_key)
     except Exception as e:
         logging.error(f"Error occurred: {e}")
         sys.exit(1)
@@ -114,10 +126,7 @@ def detect_vulnerabilities_html(html_content):
     if isinstance(xss_vulnerabilities, list):
         detected_vulnerabilities.extend(xss_vulnerabilities)
 
-    # Detect CSRF vulnerabilities
-    csrf_vulnerabilities = detect_csrf(html_content)
-    if isinstance(csrf_vulnerabilities, list):
-        detected_vulnerabilities.extend(csrf_vulnerabilities)
+
 
     # Add more vulnerability detection methods as needed
 
@@ -156,7 +165,7 @@ def detect_xss_detection(html_content):
     return detected_vulnerabilities
 
 # Function to detect Cross-Site Request Forgery (CSRF) vulnerabilities
-def detect_csrf(html_content):
+def detect_csrf_content(html_content):
     # Regular expression pattern for CSRF token detection
     csrf_token_pattern = r'<input[^>]*?name=[\'\"]?csrf[\'\"]?[^>]*?>'
 
@@ -168,6 +177,37 @@ def detect_csrf(html_content):
 
 
 # Function to perform advanced JavaScript analysis
+def detect_vulnerabilities(js_code):
+    vulnerabilities = []
+
+    # Detecting SQL injection vulnerabilities
+    if "sql" in js_code.lower() and ("select" in js_code.lower() or "insert" in js_code.lower() or "update" in js_code.lower()):
+        vulnerabilities.append(("Possible SQL injection vulnerability detected", "Found in the JavaScript code"))
+
+    # Detecting Cross-Site Scripting (XSS) vulnerabilities
+    if "document.cookie" in js_code or "innerHTML" in js_code:
+        vulnerabilities.append(("Possible Cross-Site Scripting (XSS) vulnerability detected", "Found in the JavaScript code"))
+
+    # Detecting Server-Side Request Forgery (SSRF) vulnerabilities
+    if "fetch(" in js_code or "XMLHttpRequest(" in js_code:
+        vulnerabilities.append(("Possible Server-Side Request Forgery (SSRF) vulnerability detected", "Found in the JavaScript code"))
+
+    # Detecting XML Injection vulnerabilities
+    if "DOMParser" in js_code or "loadXML(" in js_code:
+        vulnerabilities.append(("Possible XML Injection vulnerability detected", "Found in the JavaScript code"))
+
+    # Detecting Insecure Direct Object References (IDOR)
+    if "window.location" in js_code or "XMLHttpRequest(" in js_code:
+        vulnerabilities.append(("Possible Insecure Direct Object Reference (IDOR) vulnerability detected", "Found in the JavaScript code"))
+
+    # Send alerts for detected vulnerabilities
+    if vulnerabilities:
+        for vuln, location in vulnerabilities:
+            alert = f"ALERT: {vuln}. Location: {location}"
+            print(alert)  # Replace print with appropriate alert mechanism (e.g., logging, email, etc.)
+
+    return vulnerabilities
+
 def analyze_javascript(js_code):
     analysis_results = []
 
@@ -257,7 +297,7 @@ else:
     print("No potential vulnerabilities or issues detected.")
 
 # Function to detect vulnerabilities in a web page
-def detect_vulnerabilities(url):
+def detect_vulnerabilities_get(url):
     try:
         response = requests.get(url)
         html_content = response.text
@@ -274,11 +314,7 @@ def detect_vulnerabilities(url):
         if detect_xss(html_content):
             detected_vulnerabilities.append('Cross-Site Scripting (XSS)')
 
-        # Detect CSRF vulnerabilities
-        if detect_csrf(soup):
-            detected_vulnerabilities.append('Cross-Site Request Forgery (CSRF)')
 
-        # Add more vulnerability detection logic as needed
 
         return detected_vulnerabilities
 
@@ -361,20 +397,6 @@ if __name__ == "__main__":
     </body>
     </html>
     """
-    
-    # Detect CSRF vulnerabilities in the HTML content
-    vulnerabilities = detect_csrf(html_content)
-    
-    if vulnerabilities:
-        print("CSRF vulnerabilities found:")
-        for vulnerability in vulnerabilities:
-            print(f"Form Action: {vulnerability['form_action']}, Method: {vulnerability['method']}")
-    else:
-        print("No CSRF vulnerabilities found.")
-
-
-from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
 
 # Function to capture screenshot of a webpage
 def capture_screenshot(url):
@@ -507,6 +529,9 @@ def capture_screenshots_info(url):
 def multi_threaded_processing(url):
     logging.info(f"Enabling Multi-Threaded Processing for {url}")
 
+# Load environment variables from .env file
+load_dotenv()
+
 def main_parse():
     parser = argparse.ArgumentParser(description="WebShield Terminal - Security Assessment Tool",
                                      formatter_class=argparse.RawTextHelpFormatter)
@@ -527,7 +552,10 @@ def main_parse():
 
     try:
         if args.z:
-            zap_scanner_integration(args.url)
+            zap_api_key = os.getenv("ZAP_API_KEY")
+            if not zap_api_key:
+                raise ValueError("ZAP_API_KEY environment variable is not set.")
+            zap_scanner_integration(args.url, zap_api_key)
         if args.v:
             vulnerability_detection(args.url)
         if args.j:
@@ -956,39 +984,154 @@ def main_logging():
 if __name__ == "__main__":
     main()
 
-class CustomVulnerabilitySpide_selfr:
-    def __init__(self):
-        self.vulnerabilities = []
+import re
 
-    def start_requests(self):
-        start_urls = ['https://example.com']
-        for url in start_urls:
-            self.parse(url)
+class RedTeamVulnerabilityDetector:
+    def detect_sql_injection(self, html_content):
+        detected_vulnerabilities = []
 
-    def parse(self, url):
+        # Extract text content from HTML
+        text_content = self.extract_text_from_html(html_content)
+
+        # Check for common SQL Injection keywords and patterns
+        sql_injection_patterns = [
+            r'\bSELECT\b.*?\bFROM\b',
+            r'\bINSERT INTO\b',
+            r'\bUPDATE\b.*?\bSET\b',
+            r'\bDELETE FROM\b',
+            r'\bDROP\b.*?\bTABLE\b',
+            r'\bTRUNCATE\b.*?\bTABLE\b'
+        ]
+
+        for pattern in sql_injection_patterns:
+            matches = re.findall(pattern, text_content, re.IGNORECASE)
+            if matches:
+                detected_vulnerabilities.append((pattern, matches))
+
+        return detected_vulnerabilities
+
+    def extract_text_from_html(self, html_content):
+        # Use regex to strip HTML tags and extract text content
+        text_content = re.sub(r'<[^>]*>', '', html_content)
+        return text_content
+
+# Example usage
+if __name__ == "__main__":
+    detector = RedTeamVulnerabilityDetector()
+    html_content = """
+    <html>
+    <body>
+    <h1>Welcome to our website!</h1>
+    <p>This is a SQL injection vulnerability example:</p>
+    <ul>
+    <li><a href="/products?id=1 UNION SELECT username, password FROM users">View Products</a></li>
+    <li><a href="/search?q='; DROP TABLE users; --">Search</a></li>
+    </ul>
+    </body>
+    </html>
+    """
+    vulnerabilities = detector.detect_sql_injection(html_content)
+    if vulnerabilities:
+        print("Detected SQL Injection vulnerabilities:")
+        for pattern, matches in vulnerabilities:
+            print(f"Pattern: {pattern}")
+            print("Matches:")
+            for match in matches:
+                print(match)
+    else:
+        print("No SQL Injection vulnerabilities detected.")
+
+    def detect_xss_html(self, html_content):
+        detected_vulnerabilities = []
+
+        # Extract text content from HTML
+        text_content = self.extract_text_from_html(html_content)
+
+        # Check for common XSS patterns and indicators
+        xss_patterns = [
+            r'<script[^>]*>.*?</script>',  # Detect <script> tags
+            r'onerror\s*=\s*".*?"',  # Detect onerror attribute
+            r'onload\s*=\s*".*?"',  # Detect onload attribute
+            r'javascript:\s*;',  # Detect JavaScript code in href attributes
+            r'<\s*img[^>]*src\s*=\s*".*?"\s*onerror\s*=\s*".*?"'  # Detect img tag with onerror attribute
+        ]
+
+        for pattern in xss_patterns:
+            matches = re.findall(pattern, text_content, re.IGNORECASE)
+            if matches:
+                detected_vulnerabilities.append((pattern, matches))
+
+        return detected_vulnerabilities
+
+    def extract_text_from_html(self, html_content):
+        # Use regex to strip HTML tags and extract text content
+        text_content = re.sub(r'<[^>]*>', '', html_content)
+        return text_content
+
+    def detect_csrf(self, html_content):
+        detected_vulnerabilities = []
+
+        # Extract forms from HTML content
+        forms = self.extract_forms(html_content)
+
+        # Check each form for potential CSRF vulnerabilities
+        for form in forms:
+            csrf_vulnerability = self.detect_csrf_vulnerability(form)
+            if csrf_vulnerability:
+                detected_vulnerabilities.append(csrf_vulnerability)
+
+        return detected_vulnerabilities
+
+    def extract_forms(self, html_content):
+        # Use regex to find form elements in the HTML content
+        form_pattern = r'<form[^>]*>.*?</form>'
+        forms = re.findall(form_pattern, html_content, re.IGNORECASE | re.DOTALL)
+        return forms
+
+    def detect_csrf_vulnerability(self, form):
+        # Check if the form contains anti-CSRF tokens or is missing them
+        csrf_token_pattern = r'<input[^>]*name\s*=\s*["\']?csrf[^>]*>'
+        csrf_token_found = re.search(csrf_token_pattern, form, re.IGNORECASE)
+        if not csrf_token_found:
+            return "Potential CSRF vulnerability: Missing CSRF token in form"
+        return None
+
+
+import base64
+import logging
+
+class YourClass:
+    def decode_payload(self, payload):
         try:
-            # Fetch web page content
-            response = requests.get(url)
-            html_content = response.text
-
-            # Detect vulnerabilities in the web page
-            vulnerabilities = self.detect_vulnerabilities(html_content)
-
-            # Print detected vulnerabilities
-            print(f"Vulnerabilities found at {url}:")
-            for vuln, payloads in vulnerabilities.items():
-                print(f"- {vuln}: {payloads}")
-
-            # Decode and print custom payloads
-            custom_payloads = input("Enter custom payloads (comma-separated): ").split(',')
-            for payload in custom_payloads:
-                decoded_payload = self.decode_payload(payload)
-                print(f"Decoded payload: {decoded_payload}")
-
+            decoded_payload = base64.b64decode(payload.encode('utf-8')).decode('utf-8')
+            return decoded_payload
         except Exception as e:
-            logging.error(f"Error occurred while parsing {url}: {e}")
+            logging.error(f"Error decoding payload: {e}")
+            return None
 
-    def detect_vulnerabilities(self, html_content):
+    def encode_payload(self, payload):
+        try:
+            encoded_payload = base64.b64encode(payload.encode('utf-8')).decode('utf-8')
+            return encoded_payload
+        except Exception as e:
+            logging.error(f"Error encoding payload: {e}")
+            return None
+
+    def process_custom_payloads(self):
+        # Decode and print custom payloads
+        custom_payloads = input("Enter custom payloads (comma-separated): ").split(',')
+        for payload in custom_payloads:
+            decoded_payload = self.decode_payload(payload)
+            print(f"Decoded payload: {decoded_payload}")
+
+        # Encode and print custom payloads
+        custom_payloads = input("Enter custom payloads to encode (comma-separated): ").split(',')
+        for payload in custom_payloads:
+            encoded_payload = self.encode_payload(payload)
+            print(f"Encoded payload: {encoded_payload}")
+
+      
+    def detect_vulnerabilities_payloads(self, html_content):
         sqli_payloads = ["' OR '1'='1", "1 AND 1=1", "' || '1'='1", "1' OR '1'='1", "' OR 1=1 --", "1' OR '1'='1 --"]
         xss_payloads = ["<script>alert('XSS')</script>", "<img src='invalid' onerror='alert(1)'>"]
         xxe_payloads = ["<!DOCTYPE test [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]>"]
@@ -1011,13 +1154,7 @@ class CustomVulnerabilitySpide_selfr:
 
         return vulnerabilities
 
-    def decode_payload(self, payload):
-        try:
-            decoded_payload = base64.b64decode(payload).decode('utf-8')
-            return decoded_payload
-        except Exception as e:
-            logging.error(f"Error decoding payload: {e}")
-            return None
+
 
 
 def main_spider():
