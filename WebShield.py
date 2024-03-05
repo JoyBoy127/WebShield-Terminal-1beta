@@ -3,7 +3,6 @@ import time
 import re
 import threading
 import base64
-from tkinter.tix import MAIN
 from xml.dom import DOMException
 from bs4 import BeautifulSoup
 import os
@@ -25,21 +24,20 @@ import esprima
 from esprima import nodes
 import concurrent.futures
 from selenium.common.exceptions import WebDriverException
-from WebShield import analyze_page, exploit_vulnerabilities
 import random
 import sys
 
-# Print WebShield ASCII art
+# Print WebShield ASCII art with shield symbol
 print(r"""
-  ______          _       _     _____       _   
- |  ____|        (_)     | |   |  __ \     | |  
- | |__   _ __ ___ _  __ _| |__ | |__) |   _| |_ 
- |  __| | '__/ __| |/ _` | '_ \|  ___/ | | | __|
- | |____| | | (__| | (_| | | | | |   | |_| | |_ 
- |______|_|  \___|_|\__, |_| |_|_|    \__,_|\__|
-                      __/ |                     
-                     |___/                      
+  _____       _        _______   _     _   ______   _        ______   _     _   _______  
+ |  __ \     | |      |__   __| | |   | | |  ____| | |      |  ____| | |   | | |__   __| 
+ | |__) |    | |         | |    | |   | | | |__    | |      | |____  | |   | |    | |    
+ |  ___/     | |         | |    | |   | | |  __|   | |      |  ____| | |   | |    | |    
+ | |         | |____     | |    | |___| | | |____  | |____  | |____  | |___| |    | |    
+ |_|         |______|    |_|    |_______| |______| |______| |______| |_______|    |_|    
 """)
+
+
 
 # Configure logging
 logging.basicConfig(filename='webshield.log', level=logging.INFO)
@@ -77,40 +75,38 @@ def zap_scanner_integration(url, zap_api_key):
     except Exception as e:
         logging.error(f"Error occurred during ZAP scan initiation: {e}")
 
-def main_zap():
-    parser = argparse.ArgumentParser(description="WebShield Terminal - Security Assessment Tool",
-                                     formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("-z", action="store_true", help="Perform OWASP ZAP Scanner Integration")
-    parser.add_argument("-u", "--url", required=True, help="Specify the URL of the web application")
-    args = parser.parse_args()
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="WebShield Terminal - Security Assessment Tool",
+                                 formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument("-z", action="store_true", help="Perform OWASP ZAP Scanner Integration")
+parser.add_argument("-v", action="store_true", help="Run Vulnerability Detection")
+parser.add_argument("-j", action="store_true", help="Perform JavaScript Analysis")
+parser.add_argument("-sc", action="store_true", help="Capture Screenshots")
+parser.add_argument("-mt", action="store_true", help="Enable Multi-Threaded Processing")
+parser.add_argument("-p", "--payloads", action="store_true", help="Use Custom Payloads")
+parser.add_argument("-u", "--url", required=True, help="Specify the URL of the web application")
 
-    if not args.z:
-        parser.error("The -z option must be specified to perform OWASP ZAP Scanner Integration")
+args = parser.parse_args()
 
-    # Load environment variables from .env file
-    load_dotenv()
+if not args.z:
+    parser.error("The -z option must be specified to perform OWASP ZAP Scanner Integration")
 
-    # Retrieve ZAP API key from environment variable
-    zap_api_key = os.getenv("ZAP_API_KEY")
+# Load environment variables from .env file
+load_dotenv()
 
-    if not zap_api_key:
-        logging.error("ZAP API key not found in environment variables.")
-        return
+# Retrieve ZAP API key from environment variable
+zap_api_key = os.getenv("ZAP_API_KEY")
 
-    # Configure logging
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+if not zap_api_key:
+    logging.error("ZAP API key not found in environment variables.")
+    sys.exit(1)
 
-    try:
-        zap_scanner_integration(args.url, zap_api_key)
-    except Exception as e:
-        logging.error(f"Error occurred: {e}")
-        sys.exit(1)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-if __name__ == "__main__":
-    main_zap()
+# Call zap_scanner_integration() directly
+zap_scanner_integration(args.url, zap_api_key)
 
-
-import re
 
 # Function to detect vulnerabilities in HTML content
 def detect_vulnerabilities_html(html_content):
@@ -131,7 +127,6 @@ def detect_vulnerabilities_html(html_content):
     # Add more vulnerability detection methods as needed
 
     return detected_vulnerabilities
-
 
 
 # Function to detect SQL injection vulnerabilities
@@ -470,25 +465,22 @@ if __name__ == "__main__":
 
 
 # Function to capture screenshots and detect vulnerabilities
-def capture_screenshots_and_detect_vulnerabilities(urls):
-    for url in urls:
-        try:
-            # Capture screenshot
-            screenshot_path = capture_screenshot(url)
-            print(f"Screenshot captured for {url}. Saved as {screenshot_path}")
+# Placeholder functions
+def zap_scanner_integration_info(url):
+    logging.info(f"Performing OWASP ZAP Scanner Integration for {url}")
 
-            # Detect vulnerabilities
-            vulnerabilities = detect_vulnerabilities(url)
-            if vulnerabilities:
-                print(f"Vulnerabilities detected for {url}: {vulnerabilities}")
-            else:
-                print(f"No vulnerabilities detected for {url}")
+def vulnerability_detection(url):
+    logging.info(f"Running Vulnerability Detection for {url}")
 
-        except Exception as e:
-            print(f"Error processing {url}: {e}")
+def javascript_analysis(url):
+    logging.info(f"Performing JavaScript Analysis for {url}")
 
-# This function captures the screenshot, detects vulnerabilities, and prints the results
-# Function to perform a task asynchronously
+def capture_screenshots_info(url):
+    logging.info(f"Capturing Screenshots for {url}")
+
+def multi_threaded_processing(url):
+    logging.info(f"Enabling Multi-Threaded Processing for {url}")
+
 def task(url):
     try:
         response = requests.get(url)
@@ -512,22 +504,23 @@ def multi_threaded_processing_async(urls):
 
     logging.info("Multi-threaded processing completed.")
 
+# Function to capture screenshot and detect vulnerabilities for multiple URLs
+def capture_screenshots_and_detect_vulnerabilities(urls):
+    for url in urls:
+        try:
+            # Capture screenshot
+            screenshot_path = capture_screenshots_info(url)
+            logging.info(f"Screenshot captured for {url}. Saved as {screenshot_path}")
 
-# Placeholder functions
-def zap_scanner_integration_info(url):
-    logging.info(f"Performing OWASP ZAP Scanner Integration for {url}")
+            # Detect vulnerabilities
+            vulnerabilities = vulnerability_detection(url)
+            if vulnerabilities:
+                logging.info(f"Vulnerabilities detected for {url}: {vulnerabilities}")
+            else:
+                logging.info(f"No vulnerabilities detected for {url}")
 
-def vulnerability_detection(url):
-    logging.info(f"Running Vulnerability Detection for {url}")
-
-def javascript_analysis(url):
-    logging.info(f"Performing JavaScript Analysis for {url}")
-
-def capture_screenshots_info(url):
-    logging.info(f"Capturing Screenshots for {url}")
-
-def multi_threaded_processing(url):
-    logging.info(f"Enabling Multi-Threaded Processing for {url}")
+        except Exception as e:
+            logging.error(f"Error processing {url}: {e}")
 
 # Load environment variables from .env file
 load_dotenv()
@@ -555,22 +548,22 @@ def main_parse():
             zap_api_key = os.getenv("ZAP_API_KEY")
             if not zap_api_key:
                 raise ValueError("ZAP_API_KEY environment variable is not set.")
-            zap_scanner_integration(args.url, zap_api_key)
+            zap_scanner_integration_info(args.url)
         if args.v:
             vulnerability_detection(args.url)
         if args.j:
             javascript_analysis(args.url)
         if args.sc:
-            capture_screenshots(args.url)
+            capture_screenshots_and_detect_vulnerabilities([args.url])
         if args.mt:
-            multi_threaded_processing(args.url)
+            multi_threaded_processing_async([args.url])
     except Exception as e:
         logging.error(f"Error occurred: {e}")
         sys.exit(1)
 
-if __name__ == "__main__":
-    main_parse()
+main_parse()  # Call the main function
 
+# Any code outside functions or if __name__ == "__main__": block will execute after main_parse() is called
 # Fetch vulnerability information with rate limiting and error handling
 def fetch_vulnerability_info(vulnerability):
     api_url = 'https://api.vulndb.com/vulnerabilities'
